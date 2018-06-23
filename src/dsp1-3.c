@@ -1,10 +1,12 @@
+//＊＊＊H30年度・DSP1-4・番号04＊＊＊
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
 #define NUM 2048
+#define CROSS_NUM 701
+#define AUTO_NUM 71
 
-int whe = 0;
 
 double correlation(double *data1,double *data2,int num);
 double aveMatrix(double *data,int num);
@@ -13,29 +15,55 @@ int inputData(char *filename,double *data);
 void productMatrix(double *a,double *b,int num,double *ans);
 double inSumMatrix(double *a,int num);
 double normalizationMatrix(double *a,int num);
-double crossCorrelation(double *data1,double *data2,int num);
+double crossCorrelation(double *data1,double *data2,int num,double *array);
 
+int whe = 0;
 
 int main(){
 
-	char *txt1="txt1.txt";
-	char *txt2="txt2.txt";
-	int num = 501;
-	
-	double data1[NUM] = {0},data2[NUM] = {0};
+	char *txt1="txt/txt1.txt";
+	char *txt2="txt/txt2.txt";
+	char *txt3="txt/txt3.txt";
+	int crossNum = 701,autoNum = 71,i=0;
+	double buf=0;
+	double crossCorre[CROSS_NUM] = {0};
+	double autoCorre[AUTO_NUM] = {0};
+	double data1[NUM] = {0},data2[NUM] = {0},data3[NUM] = {0};
+	FILE *fp1,*fp2;
 
 	inputData(txt1,data1);
 	inputData(txt2,data2);
+	inputData(txt3,data3);
 
-	printf("%lf %d\n",crossCorrelation(data1,data2,num),whe);
-	printf("%lf %d\n",crossCorrelation(data1,data1,num),whe);
+	buf=crossCorrelation(data1,data2,crossNum,crossCorre);
+	printf("相互相関係数：\n");
+	for(i=0;i<8;i++){
+		printf("n = %5d : txt1 * txt2 = %lf\n",i*100,crossCorre[i*100]);	
+	}
 
+	buf=crossCorrelation(data1,data1,autoNum,autoCorre);
+	printf("自己相関係数：\n");
+	for(i=0;i<8;i++){
+		printf("n = %5d : txt3 * txt3 = %lf\n",i*10,autoCorre[i*10]);	
+	}
+	
+	fp1=fopen("output1.txt","w");
+	for(i=0;i<701;i++){
+		fprintf(fp1,"%lf\n",crossCorre[i]);
+	}
+	fp2=fopen("output2.txt","w");
+	for(i=0;i<71;i++){
+		fprintf(fp2,"%lf\n",autoCorre[i]);
+	}
+
+	fclose(fp1);
+	fclose(fp2);	
 
 	return 0;
 
 }
 
-double crossCorrelation(double *data1,double *data2,int num){	
+double crossCorrelation(double *data1,double *data2,int num,double *array){	
 /*	int bufNum = num;
 	double buf = 0;
 	double ans = -1;
@@ -56,6 +84,7 @@ double crossCorrelation(double *data1,double *data2,int num){
 			sum+=data1[j]*data2[j+i];
 		}
 		sum = (double)(sum/(double)num);
+		array[i]=sum;
 		if(ans < sum){
 			ans = sum;
 			whe = i;
