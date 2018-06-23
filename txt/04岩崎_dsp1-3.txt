@@ -1,0 +1,136 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+double correlation(double *data1,double *data2,int num);
+double aveMatrix(double *data,int num);
+void removeDCComponent(double *data,int num,double *ans);
+int inputData(char *filename,double *data);
+void productMatrix(double *a,double *b,int num,double *ans);
+double inSumMatrix(double *a,int num);
+double normalizationMatrix(double *a,int num);
+
+
+int main(){
+	
+	char *m_H16_name="test1.txt";
+	char *w_H16_name="test2.txt";
+	char *a_H16_name="test3.txt";
+	char *a_S24_name="test4.txt";
+	double m_H16_data[512],w_H16_data[512],
+		   a_H16_data[512],a_S24_data[512];
+	double m_H16_num,w_H16_num,a_H16_num,a_S24_num;
+	double removed_m_H16_data[512],removed_w_H16_data[512],
+		   removed_a_H16_data[512],removed_a_S24_data[512];
+	double ans=0;
+	double ans1=0,ans2=0,ans3=0,r_ans1=0,r_ans2=0,r_ans3=0;
+
+	m_H16_num = inputData(m_H16_name,m_H16_data);
+	w_H16_num = inputData(w_H16_name,w_H16_data);
+	a_H16_num = inputData(a_H16_name,a_H16_data);
+	a_S24_num = inputData(a_S24_name,a_S24_data);
+
+	removeDCComponent(m_H16_data,m_H16_num,removed_m_H16_data);	
+	removeDCComponent(w_H16_data,w_H16_num,removed_w_H16_data);	
+	removeDCComponent(a_H16_data,a_H16_num,removed_a_H16_data);	
+	removeDCComponent(a_S24_data,a_S24_num,removed_a_S24_data);	
+
+	ans1 = correlation(m_H16_data,w_H16_data,m_H16_num);
+	ans2 = correlation(a_S24_data,a_H16_data,m_H16_num);
+	ans3 = correlation(m_H16_data,a_S24_data,m_H16_num);
+
+	r_ans1 = correlation(removed_m_H16_data,removed_w_H16_data,m_H16_num);
+	r_ans2 = correlation(removed_a_S24_data,removed_a_H16_data,m_H16_num);
+	r_ans3 = correlation(removed_m_H16_data,removed_a_S24_data,m_H16_num);
+	
+	printf("年度	：H30\n");
+	printf("学籍番号：s15023\n");
+	printf("出席番号：4J04\n");
+	printf("氏名	：岩崎悠紀\n\n");
+
+	printf("相関関係結果：\n");
+	printf("H16男性・女性=%lf\n",r_ans1);
+	printf("H16男性・総人口=%lf\n",r_ans2);
+	printf("H16男性・S24=%lf\n",r_ans3);
+	printf("直流成分未除去の場合：\n");
+	printf("H16男性・女性=%lf\n",ans1);
+	printf("H16男性・総人口=%lf\n",ans2);
+	printf("H16男性・S24=%lf\n",ans3);
+
+	return 0;
+
+}
+
+double correlation(double *data1,double *data2,int num){
+	double buf1=0,buf2=0,buf3=0,ans[512];
+
+	buf1 = normalizationMatrix(data1,num);
+	buf2 = normalizationMatrix(data2,num);
+	productMatrix(data1,data2,num,ans);
+	buf3 = inSumMatrix(ans,num);
+
+	return (double)((double)buf3/(buf1*buf2));
+}
+
+double aveMatrix(double *data,int num){
+	return (double)(inSumMatrix(data,num)/num);
+}
+
+void removeDCComponent(double *data,int num,double *ans){
+	int cnt=0;
+	double buf=aveMatrix(data,num);
+	for(;num>0;num--){
+		ans[cnt] = data[cnt]-buf;
+		cnt++;
+	}
+	return;
+}
+
+int inputData(char *filename,double *data){
+	FILE *fp;
+	int i=0;
+	int num=0;
+	int ref=0;
+	fp=fopen(filename,"r");
+	if(fp==NULL){
+		printf("ERROR : cant open files.\n");
+		exit(1);
+	}
+	while((ref=fscanf(fp,"%lf",&data[i]))!=EOF){
+		i++;
+		num+=ref;
+	}
+	data[i]=-1.0;
+	return num;
+}
+
+void productMatrix(double *a,double *b,int num,double *ans){
+	int cnt=0;
+	for(;num>0;num--){
+		ans[cnt]=a[cnt]*b[cnt];
+		cnt++;
+	}
+	return;
+}
+
+double normalizationMatrix(double *a,int num){
+	int cnt=0;
+	double sum=0;
+	double ans=0;
+	for(;num>0;num--){
+		sum+=a[cnt]*a[cnt];
+		cnt++;
+	}
+	ans=sqrt(sum);
+	return ans;
+}
+
+double inSumMatrix(double *a,int num){
+	int cnt=0;
+	double sum=0;
+	for(;num>0;num--){
+		sum+=a[cnt];
+		cnt++;
+	}
+	return sum;
+}
