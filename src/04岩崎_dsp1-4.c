@@ -15,7 +15,8 @@ int inputData(char *filename,double *data);
 void productMatrix(double *a,double *b,int num,double *ans);
 double inSumMatrix(double *a,int num);
 double normalizationMatrix(double *a,int num);
-double crossCorrelation(double *data1,double *data2,int num,double *array);
+double noncyclicCrossCorrelation(double *data1,double *data2,int num,double *array);
+double cyclicCrossCorrelation(double *data1,double *data2,int num,double *array);
 
 int whe = 0;
 
@@ -30,23 +31,31 @@ int main(){
 	double autoCorre[AUTO_NUM] = {0};
 	double data1[NUM] = {0},data2[NUM] = {0},data3[NUM] = {0};
 	FILE *fp1,*fp2;
+	int cache1,cache2,cache3;
 
-	inputData(txt1,data1);
-	inputData(txt2,data2);
-	inputData(txt3,data3);
+	cache1=inputData(txt1,data1);
+	cache2=inputData(txt2,data2);
+	cache3=inputData(txt3,data3);
 
-	buf=crossCorrelation(data1,data2,crossNum,crossCorre);
+	printf("-------------------\n");
+	printf("年度　　　：H30\n");
+	printf("課題番号　：4番\n");
+	printf("出席番号　：4番\n");
+	printf("-------------------\n");
+
+	buf=noncyclicCrossCorrelation(data1,data2,crossNum,crossCorre);
 	printf("相互相関係数：\n");
 	for(i=0;i<8;i++){
-		printf("n = %5d : txt1 * txt2 = %lf\n",i*100,crossCorre[i*100]);	
+		printf("Rxy(%3d) : txt1 * txt2 = %9lf\n",i*100,crossCorre[i*100]);	
 	}
 
-	buf=crossCorrelation(data1,data1,autoNum,autoCorre);
+	buf=noncyclicCrossCorrelation(data3,data3,autoNum,autoCorre);
 	printf("自己相関係数：\n");
 	for(i=0;i<8;i++){
-		printf("n = %5d : txt3 * txt3 = %lf\n",i*10,autoCorre[i*10]);	
+		printf("Rxx(%3d) : txt3 * txt3 = %9lf\n",i*10,autoCorre[i*10]);	
 	}
-	
+
+
 	fp1=fopen("output1.txt","w");
 	for(i=0;i<701;i++){
 		fprintf(fp1,"%lf\n",crossCorre[i]);
@@ -63,7 +72,7 @@ int main(){
 
 }
 
-double crossCorrelation(double *data1,double *data2,int num,double *array){	
+double noncyclicCrossCorrelation(double *data1,double *data2,int num,double *array){	
 /*	int bufNum = num;
 	double buf = 0;
 	double ans = -1;
@@ -81,7 +90,45 @@ double crossCorrelation(double *data1,double *data2,int num,double *array){
 	for(;i<num;i++){
 		sum = 0;
 		for(j=0;j<num;j++){
-			sum+=data1[j]*data2[j+i];
+			if(j+i<num){
+				sum+=data1[j]*data2[j+i];
+			}
+		}
+		sum = (double)(sum/(double)num);
+		array[i]=sum;
+		if(ans < sum){
+			ans = sum;
+			whe = i;
+		}
+	}
+	return ans;
+}
+
+double cyclicCrossCorrelation_2(double *data1,double *data2,int num,double *array){	
+/*	int bufNum = num;
+	double buf = 0;
+	double ans = -1;
+
+	for(int i=0;i<num;i++){
+		buf = 
+		if(ans < buf){
+			ans = buf;
+		}
+	}
+*/
+	int i=0,j=0,m=0;
+	double ans = -1,sum =0;
+
+	for(;i<num;i++){
+		sum = 0;
+		m = 0;
+		for(j=0;j<num;j++){
+			if((j+i-m) < (num-1)){
+				sum+=data1[j]*data2[j+i-m];
+			}else{
+				m = (j + i);
+				sum+=data1[j]*data2[j+i-m];
+			}
 		}
 		sum = (double)(sum/(double)num);
 		array[i]=sum;
