@@ -3,6 +3,7 @@
 #include <string.h>
 
 #define NUM 500
+#define EPSILON 1e-10
 
 typedef struct{
 	double re;
@@ -14,6 +15,7 @@ void outputData(comp *data, char *filename, int N);
 void dft(comp *xn, int N, comp *Xk, int a, int b);
 void ampSpectrum(comp *Xk, int N, double *spec);
 void phaSpectrum(comp *Xk, int N, double *spec);
+void hamming(comp *x1, comp *x2, int N);
 
 comp xn[NUM];
 comp Xk[NUM];
@@ -24,7 +26,7 @@ int main(){
 	int i = 0;
 	int N = NUM;
 	double buf[NUM]={0}, pha_buf[NUM]={0};
-	comp a[NUM];
+	comp a[NUM], chache[NUM];
 	FILE *fp;
 
 	for(i=0;i<N;i++){
@@ -34,9 +36,21 @@ int main(){
 		xn[i].im = 0;
 		a[i].re = 0;
 		a[i].im = 0;
+		chache[i].re = 0;
+		chache[i].im = 0;
 	}
 
-	inputData(xn, filename, N);
+	inputData(chache, filename, N);	
+	hamming(chache, xn, N);
+//	xn[0].re = 3;
+//	xn[1].im = 3;
+//	xn[2].re = -1;
+//	xn[3].im = -1;
+//	xn[4].re = 1;
+//	xn[5].re = sqrt(2);
+//	xn[6].re = 1;
+//	xn[7].re = sqrt(2);
+
 	dft(xn, N, Xk, 1, 1);
 	ampSpectrum(Xk, N, buf);
 	phaSpectrum(Xk, N, pha_buf);
@@ -50,11 +64,13 @@ int main(){
 //		printf("Xk[%d].re\t=%12lf\n",i ,Xk[i].re);
 //		printf("Xk[%d].im\t=%12lf\n",i ,Xk[i].im);
 //		printf("amp[%d]=%12lf\n", i, buf[i]);
+//		printf("pha[%d]=%12lf\n", i, pha_buf[i]);
 //	}
 
 	outputData(xn, "xn", N);
 	outputData(a, "a", N);
 	outputData(Xk, "Xk", N);
+	outputData(chache, "chache", N);
 	
 	fp = fopen("amp.txt", "w");
 
@@ -73,6 +89,8 @@ int main(){
 			return 0;
 		}
 	}
+
+	printf("ファイルに結果を出力しました\n");
 
 	return 0;
 }
@@ -98,8 +116,8 @@ void outputData(comp *data, char *filename, int N){
 
 	strcpy(filename_re, filename);
 	strcpy(filename_im, filename);
-	strcat(filename_re, "_re.csv");
-	strcat(filename_im, "_im.csv");
+	strcat(filename_re, "_re.txt");
+	strcat(filename_im, "_im.txt");
 
 	fp_re = fopen(filename_re, "w");
 	fp_im = fopen(filename_im, "w");
@@ -111,11 +129,11 @@ void outputData(comp *data, char *filename, int N){
 	}
 
 	for(i = 0; i < N; i++){
-		if(fprintf(fp_re, "%lf,\n", data[i].re) < 0 ){
+		if(fprintf(fp_re, "%lf\n", data[i].re) < 0 ){
 			printf("ERROR\n");
 			return;
 		}
-		if(fprintf(fp_im, "%lf,\n", data[i].im) < 0){
+		if(fprintf(fp_im, "%lf\n", data[i].im) < 0){
 			printf("[ERROR] cant write file to the end.");
 			return;
 		}
@@ -141,6 +159,11 @@ void ampSpectrum(comp *Xk, int N, double *spec){
 
 	for(k=0;k<N;k++){
 		spec[k] = sqrt(Xk[k].re*Xk[k].re + Xk[k].im*Xk[k].im);
+		if(spec[k] < EPSILON){
+			spec[k] = 0;
+		}else{
+			spec[k] = 20 * log10(spec[k]);
+		}
 	}
 }
 
@@ -148,6 +171,13 @@ void phaSpectrum(comp *Xk, int N, double *spec){
 	int k=0;
 	for(k=0;k<N;k++){
 		spec[k] = atan(Xk[k].im/Xk[k].re);
-	
+	}
+}
+
+void hamming(comp *x1, comp *x2, int N){
+	int i=0;
+	for(i=0;i<N;i++){
+		x2[i].re = x1[i].re * (0.54 - 0.46*cos(2*M_PI*i/N));
+		x2[i].im = x1[i].im * (0.54 - 0.46*cos(2*M_PI*i/N));
 	}
 }
